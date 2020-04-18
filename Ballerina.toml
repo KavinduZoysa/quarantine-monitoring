@@ -1,0 +1,14 @@
+[project]
+org-name= "kavindu"
+version= "0.1.0"
+
+[dependencies]
+
+[platform]
+target = "java8"
+    [[platform.libraries]]
+    artifactId = "mysql-connector-java"
+    version = "8.0.11"
+    path = "/usr/lib/ballerina/distributions/jballerina-1.2.0/bre/lib/mysql-connector-java-8.0.11.jar"
+    groupId = "mysql"
+    modules = ["quarantine_monitoring"]
