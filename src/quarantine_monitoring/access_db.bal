@@ -16,15 +16,43 @@ public function createTables() returns boolean {
 
     if (returned is jdbc:UpdateResult) {
         log:printInfo("Created the table `device_info` with status: " + returned.updatedRowCount.toString());
+    } else {
+        log:printError("failed: " + <string>returned.detail()?.message);
+    }
+
+    returned = qurantineMonitorDb->update("CREATE TABLE responsible_person(receiver_id VARCHAR(255), name VARCHAR(255), address VARCHAR(255), " + 
+    " phone_number VARCHAR(255), PRIMARY KEY (receiver_id))"); 
+    
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Created the table `device_info` with status: " + returned.updatedRowCount.toString());
+        return true;
+    } else {
+        log:printError("failed: " + <string>returned.detail()?.message);
+    }
+
+    log:printError("Cannot create the tables");
+    return false;
+}
+
+public function addResponsiblePersonInfo(string receiverId, string name, string address, string phoneNumber) returns boolean {
+
+    var returned = qurantineMonitorDb->update("INSERT INTO responsible_person(receiver_id, name, address, phone_number) " + 
+    " values (?, ?, ?, ?)", receiverId, name, address, phoneNumber);
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Inseted the receiver id :" + receiverId + 
+                    " and name : " + name + 
+                    " and address : " + address + 
+                    " and phone number : " + phoneNumber + " with status: " + returned.updatedRowCount.toString());
         return true;
     } else {
         log:printInfo("failed: " + <string>returned.detail()?.message);
     }
 
-    log:printInfo("Cannot create the table `device_info`");
+    string message = "Error in inserting values to the table `responsible_person`";
+    log:printInfo(message);
     return false;
 }
-
 public function addDeviceInfoToTable(string deviceId, string macAddress) returns boolean {
 
     var returned = qurantineMonitorDb->update("INSERT INTO device_info(device_id, mac_address) values (?, ?)", deviceId, macAddress);
@@ -80,6 +108,47 @@ public function getDeviceIdsFromDb(string receiverId) returns json {
         log:printInfo("JSON: " + jsonConversionRet.toJsonString());
     } else {
         log:printInfo("Select device ids from device_info table failed: " + <string>selectRet.detail()?.message);
+    }
+    
+    return jsonConversionRet;
+}
+
+type Person record {|
+    boolean is_person_present;
+    string name;
+    string address;
+|};
+
+public function getPersonInfo(string deviceId) returns json {
+    
+    var selectRet = qurantineMonitorDb->select("SELECT is_person_present, name, address FROM device_info where device_id = ?", Person, deviceId);
+
+    json jsonConversionRet = ();
+    if (selectRet is table<record{}>) {
+        jsonConversionRet = jsonutils:fromTable(selectRet);
+        log:printInfo("JSON: " + jsonConversionRet.toJsonString());
+    } else {
+        log:printInfo("Select person info from device_info table failed: " + <string>selectRet.detail()?.message);
+    }
+    
+    return jsonConversionRet;
+}
+
+type ResponsiblePerson record {|
+    string name;
+    string phone_number;
+|};
+
+public function getResponsiblePersonInfo(string receiverId) returns json {
+
+    var selectRet = qurantineMonitorDb->select("SELECT name, phone_number FROM responsible_person where receiver_id = ?", ResponsiblePerson, receiverId);
+
+    json jsonConversionRet = ();
+    if (selectRet is table<record{}>) {
+        jsonConversionRet = jsonutils:fromTable(selectRet);
+        log:printInfo("JSON: " + jsonConversionRet.toJsonString());
+    } else {
+        log:printInfo("Select person info from device_info table failed: " + <string>selectRet.detail()?.message);
     }
     
     return jsonConversionRet;

@@ -23,6 +23,51 @@ type Student record {
 service quarantineMonitor on new http:Listener(9090) {
 
     @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/add-responsible-person-info"
+    }
+    resource function addResponsiblePersonInfo(http:Caller caller, http:Request req) {
+
+        var payload = req.getJsonPayload();
+        http:Response res = new;
+
+        if (payload is json) {
+            if (!addResponsiblePerson(payload)) {
+                res.statusCode = 500;
+                res.setPayload("Cannot add person information");                
+            } 
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError("Invalid format in request body");
+        }
+
+        var result = caller->respond(res);
+        if (result is error) {
+           log:printError("Error in responding", result);
+        }
+    }
+
+    @http:ResourceConfig {
+        methods: ["GET"],
+        path: "/notify/{receiverId}/{deviceId}"
+    }
+    resource function notifyDeviceInfo(http:Caller caller, http:Request req, string receiverId, string deviceId) {
+
+        http:Response res = new;
+
+        if (!manageNotification(receiverId, deviceId)) {
+            res.statusCode = 500;
+            res.setPayload("Error in sending notification"); 
+        }
+
+        var result = caller->respond(res);
+        if (result is error) {
+           log:printError("Error in responding", result);
+        }
+    }
+
+    @http:ResourceConfig {
         methods: ["GET"],
         path: "/get-device-ids/{reveicerId}"
     }
