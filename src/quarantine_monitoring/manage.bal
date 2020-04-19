@@ -22,6 +22,10 @@ public function addPersonInfo(json info) returns boolean {
                             info.device_id.toString());
 }
 
+public function getDeviceIds(string receiverId) returns json {
+    return getDeviceIdsFromDb(receiverId);
+}
+
 public function populateTables() returns boolean {
     return createTables();
 }

@@ -1,6 +1,7 @@
 import ballerinax/java.jdbc;
 import ballerina/log;
 import ballerina/time;
+import ballerina/jsonutils;
 
 jdbc:Client qurantineMonitorDb = new ({
     url: "jdbc:mysql://localhost:3306/quarantine_monitor",
@@ -18,7 +19,6 @@ public function createTables() returns boolean {
         return true;
     } else {
         log:printInfo("failed: " + <string>returned.detail()?.message);
-        // return false;
     }
 
     log:printInfo("Cannot create the table `device_info`");
@@ -64,4 +64,23 @@ public function updateDeviceInfo(boolean isPersonPresent, string name, string ad
         log:printInfo("failed: " + <string>returned.detail()?.message);
     }
     return false;
+}
+
+type DeviceId record {|
+    string device_id;        
+|};
+
+public function getDeviceIdsFromDb(string receiverId) returns json {
+
+    var selectRet = qurantineMonitorDb->select("SELECT device_id FROM device_info where receiver_id = ?", DeviceId, receiverId);
+
+    json jsonConversionRet = ();
+    if (selectRet is table<record{}>) {
+        jsonConversionRet = jsonutils:fromTable(selectRet);
+        log:printInfo("JSON: " + jsonConversionRet.toJsonString());
+    } else {
+        log:printInfo("Select device ids from device_info table failed: " + <string>selectRet.detail()?.message);
+    }
+    
+    return jsonConversionRet;
 }

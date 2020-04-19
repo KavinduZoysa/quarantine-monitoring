@@ -23,6 +23,28 @@ type Student record {
 service quarantineMonitor on new http:Listener(9090) {
 
     @http:ResourceConfig {
+        methods: ["GET"],
+        path: "/get-device-ids/{reveicerId}"
+    }
+    resource function getDeviceInfo(http:Caller caller, http:Request req, string reveicerId) {
+
+        http:Response res = new;
+
+        json deviceIds = getDeviceIds(reveicerId);
+        if (deviceIds is ()) {
+            res.statusCode = 500;
+            res.setPayload("Cannot get device ids"); 
+        } else {
+            res.setJsonPayload(<@untainted>deviceIds);
+        }
+
+        var result = caller->respond(res);
+        if (result is error) {
+           log:printError("Error in responding", result);
+        }
+    }
+
+    @http:ResourceConfig {
         methods: ["POST"],
         path: "/add-person-info"
     }
