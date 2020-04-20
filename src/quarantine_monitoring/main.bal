@@ -52,16 +52,27 @@ service quarantineMonitor on new http:Listener(9090) {
     }
 
     @http:ResourceConfig {
-        methods: ["GET"],
-        path: "/notify/{receiverId}/{deviceId}"
+        methods: ["POST"],
+        path: "/notify"
     }
-    resource function notifyDeviceInfo(http:Caller caller, http:Request req, string receiverId, string deviceId) {
+    resource function notifyDeviceInfo(http:Caller caller, http:Request req) {
 
         http:Response res = new;
 
-        if (!manageNotification(receiverId, deviceId)) {
+        // if (!manageNotification(receiverId, deviceId)) {
+        //     res.statusCode = 500;
+        //     res.setPayload("Error in sending notification"); 
+        // }
+        var payload = req.getJsonPayload();
+        if (payload is json) {
+            if (!manageNotification_v1(payload)) {
+                res.statusCode = 500;
+                res.setPayload("Error in sending notification");                
+            } 
+        } else {
             res.statusCode = 500;
-            res.setPayload("Error in sending notification"); 
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError("Invalid format in request body");
         }
 
         var result = caller->respond(res);

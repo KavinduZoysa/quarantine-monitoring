@@ -172,3 +172,7 @@ public function getResponsiblePersonInfo(string receiverId) returns json {
     
     return jsonConversionRet;
 }
+
+public function getMacAddressesFor(string receiverId) {
+    
+}
