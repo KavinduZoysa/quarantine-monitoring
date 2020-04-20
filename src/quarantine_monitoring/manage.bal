@@ -1,5 +1,9 @@
 import ballerina/log;
 
+public function checkDb() returns boolean {
+    return checkDbConnectivity();
+}
+
 public function addDeviceInfo(json info) returns boolean {
     return addDeviceInfoToTable(info.device_id.toString(), info.mac_address.toString());
 }
@@ -10,30 +14,27 @@ public function manageNotification(string receiverId, string deviceId) returns b
     }
     log:printInfo("Quarantine rules violation is detected.");
 
-    json person = getPersonInfo(deviceId);
+    json[] person = <json[]>getPersonInfo(deviceId);
     boolean isPersonPresent = false;
-    if (person.is_person_present is boolean) {
-        isPersonPresent = <boolean> person.is_person_present;
-    } else if (person.is_person_present is string) {
-        log:printInfo("YYYYYYYYYYYYYYYYYYYYY");
-    } else {
-        log:printInfo((person.is_person_present).toString());
-    }
+    if (person[0].is_person_present is boolean) {
+        isPersonPresent = <boolean> person[0].is_person_present;
+    } 
 
     if (!isPersonPresent) {
         log:printError("Person is not available for device id : " + deviceId);
         return false;
     }
-    log:printInfo("Quarantine rules are violated by " + person.name.toString());
+    log:printInfo("Quarantine rules are violated by " + person[0].name.toString());
 
-    json responsiblePerson = getResponsiblePersonInfo(receiverId);
-    if (responsiblePerson is ()) {
+    json[] responsiblePerson = <json[]>getResponsiblePersonInfo(receiverId);
+    if (responsiblePerson[0] is ()) {
         log:printError("Responsible person is not assigned for receiver id : " + receiverId);
         return false;
     }
 
-    if (!sendNotification(responsiblePerson.phone_number.toString(), person.name.toString(), person.address.toString())) {
+    if (!sendNotification(responsiblePerson[0].phone_number.toString(), person[0].name.toString(), person[0].address.toString())) {
         log:printError("Error in sending notification.");
+        return false;
     }
     return true;
 }

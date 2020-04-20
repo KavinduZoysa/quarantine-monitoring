@@ -10,6 +10,24 @@ jdbc:Client qurantineMonitorDb = new ({
     dbOptions: {useSSL: false}
 });
 
+// jdbc:Client qurantineMonitorDb = new ({
+//     url: "jdbc:mysql://kavindu-rds-amazon.cmwczs08iavr.us-east-2.rds.amazonaws.com:3306/quarantine_monitor",
+//     username: "admin",
+//     password: "adminadmin",
+//     dbOptions: {useSSL: false}
+// });
+
+public function checkDbConnectivity() returns boolean {
+    var returned = qurantineMonitorDb->update("USE quarantine_monitor");
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Use database `quarantine_monitor` with status: " + returned.updatedRowCount.toString());
+        return true;
+    } else {
+        log:printError("failed: " + <string>returned.detail()?.message);
+    }
+    return false;
+}
+
 public function createTables() returns boolean {
     var returned = qurantineMonitorDb->update("CREATE TABLE device_info(device_id VARCHAR(255), mac_address VARCHAR(255), is_person_present boolean, " + 
     " name VARCHAR(255), address VARCHAR(255), age INT, inserted_time TIMESTAMP , receiver_id VARCHAR(255), PRIMARY KEY (device_id))");
@@ -95,12 +113,13 @@ public function updateDeviceInfo(boolean isPersonPresent, string name, string ad
 }
 
 type DeviceId record {|
-    string device_id;        
+    string device_id;  
+    string mac_address;      
 |};
 
 public function getDeviceIdsFromDb(string receiverId) returns json {
 
-    var selectRet = qurantineMonitorDb->select("SELECT device_id FROM device_info where receiver_id = ?", DeviceId, receiverId);
+    var selectRet = qurantineMonitorDb->select("SELECT device_id, mac_address FROM device_info where receiver_id = ?", DeviceId, receiverId);
 
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {

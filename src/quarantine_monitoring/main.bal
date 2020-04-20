@@ -1,26 +1,29 @@
-import ballerina/time;
-import ballerinax/java.jdbc;
 import ballerina/http;
 import ballerina/log;
-
-jdbc:Client testDB = new ({
-    url: "jdbc:mysql://localhost:3306/testdb",
-    username: "root",
-    password: "root",
-    dbOptions: {useSSL: false}
-});
-
-type Student record {
-    int id;
-    int age;
-    string name;
-    time:Time insertedTime;
-};
 
 @http:ServiceConfig {
     basePath: "/quarantine-monitor"
 }
 service quarantineMonitor on new http:Listener(9090) {
+
+    @http:ResourceConfig {
+        methods: ["GET"],
+        path: "/health-check"
+    }
+    resource function healthCheck(http:Caller caller, http:Request req) {
+        http:Response res = new;
+
+        json responseJson = {
+            "server": true,
+            "database": checkDb()
+        };
+        res.setJsonPayload(<@untainted>responseJson);
+
+        var result = caller->respond(res);
+        if (result is error) {
+           log:printError("Error in responding", result);
+        }
+    }
 
     @http:ResourceConfig {
         methods: ["POST"],
