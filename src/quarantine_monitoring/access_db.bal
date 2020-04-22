@@ -124,7 +124,7 @@ public function getDeviceIdsFromDb(string receiverId) returns json {
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
         jsonConversionRet = jsonutils:fromTable(selectRet);
-        log:printInfo("JSON: " + jsonConversionRet.toJsonString());
+        log:printInfo(" Device ids JSON: " + jsonConversionRet.toJsonString());
     } else {
         log:printInfo("Select device ids from device_info table failed: " + <string>selectRet.detail()?.message);
     }
@@ -145,7 +145,7 @@ public function getPersonInfo(string deviceId) returns json {
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
         jsonConversionRet = jsonutils:fromTable(selectRet);
-        log:printInfo("JSON: " + jsonConversionRet.toJsonString());
+        log:printInfo("Person info JSON: " + jsonConversionRet.toJsonString());
     } else {
         log:printInfo("Select person info from device_info table failed: " + <string>selectRet.detail()?.message);
     }
@@ -165,7 +165,7 @@ public function getResponsiblePersonInfo(string receiverId) returns json {
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
         jsonConversionRet = jsonutils:fromTable(selectRet);
-        log:printInfo("JSON: " + jsonConversionRet.toJsonString());
+        log:printInfo("Responsible person info JSON: " + jsonConversionRet.toJsonString());
     } else {
         log:printInfo("Select person info from device_info table failed: " + <string>selectRet.detail()?.message);
     }
@@ -173,6 +173,60 @@ public function getResponsiblePersonInfo(string receiverId) returns json {
     return jsonConversionRet;
 }
 
-public function getMacAddressesFor(string receiverId) {
+type DeviceInfo record {|
+    string device_id;
+    boolean is_person_present;
+    string name;
+    string address;
+    int missing_count;
+|};
+
+public function getReceiverBindedInfo(string receiverId) returns json[] {
+
+    var selectRet = qurantineMonitorDb->select("SELECT device_id, is_person_present, name, address, missing_count FROM device_info where receiver_id = ?", DeviceInfo, receiverId);
+
+    json jsonConversionRet = ();
+    if (selectRet is table<record{}>) {
+        jsonConversionRet = jsonutils:fromTable(selectRet);
+        log:printInfo("Reveiver binded info JSON: " + jsonConversionRet.toJsonString());
+    } else {
+        log:printInfo("Select receiver binded info from device_info table failed: " + <string>selectRet.detail()?.message);
+    }
     
+    return <json[]> jsonConversionRet;
+}
+
+public function updateMissingCount(map<int> missingCount) returns boolean {
+    var returned = qurantineMonitorDb->update(createMissingCountString(missingCount));
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Missing counts are updated successfully.");
+        return true;
+    } else {
+        log:printInfo("failed: " + <string>returned.detail()?.message);
+    }
+    return false;
+
+}
+
+public function createMissingCountString(map<int> missingCount) returns string {
+    string updateQuery = "UPDATE quarantine_monitor.device_info SET missing_count = CASE device_id ";
+    string ids = "";
+
+    int l = missingCount.length();
+    int i = 0;
+    foreach var [k,v] in missingCount.entries() {
+        updateQuery = updateQuery.concat(" WHEN '" + k + "' THEN '" + v.toString() + "' ");
+        ids = ids.concat("'" + k + "'");
+        if (i != l - 1) {
+            ids = ids.concat(",");
+        }
+        i = i + 1;
+    }
+
+    updateQuery = updateQuery.concat(" END WHERE device_id IN( ");
+    updateQuery = updateQuery.concat(ids);
+    updateQuery = updateQuery.concat(");");
+    log:printInfo("Missing counts update query : " + updateQuery);
+    return updateQuery;
 }

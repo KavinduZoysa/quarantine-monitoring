@@ -59,13 +59,9 @@ service quarantineMonitor on new http:Listener(9090) {
 
         http:Response res = new;
 
-        // if (!manageNotification(receiverId, deviceId)) {
-        //     res.statusCode = 500;
-        //     res.setPayload("Error in sending notification"); 
-        // }
         var payload = req.getJsonPayload();
         if (payload is json) {
-            if (!manageNotification_v1(payload)) {
+            if (!manageNotification_v2(payload)) {
                 res.statusCode = 500;
                 res.setPayload("Error in sending notification");                
             } 
