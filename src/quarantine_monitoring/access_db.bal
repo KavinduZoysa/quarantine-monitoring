@@ -230,3 +230,22 @@ public function createMissingCountString(map<int> missingCount) returns string {
     log:printInfo("Missing counts update query : " + updateQuery);
     return updateQuery;
 }
+
+type MissingStatus record {
+    string device_id;
+    boolean is_missing;
+};
+
+public function getMissingCountPerPerson() returns json {
+
+    var selectRet = qurantineMonitorDb->select("SELECT device_id, IF(missing_count> 10, TRUE, FALSE) AS is_missing FROM device_info", MissingStatus);
+    json jsonConversionRet = ();
+    if (selectRet is table<record{}>) {
+        jsonConversionRet = jsonutils:fromTable(selectRet);
+        log:printInfo(" Device ids JSON: " + jsonConversionRet.toJsonString());
+    } else {
+        log:printInfo("Select device ids from device_info table failed: " + <string>selectRet.detail()?.message);
+    }
+    
+    return jsonConversionRet; 
+}

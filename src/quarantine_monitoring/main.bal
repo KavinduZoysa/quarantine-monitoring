@@ -26,6 +26,28 @@ service quarantineMonitor on new http:Listener(9090) {
     }
 
     @http:ResourceConfig {
+        methods: ["GET"],
+        path: "/get-missing-count"
+    }
+    resource function getMissingCount(http:Caller caller, http:Request req) {
+
+        http:Response res = new;
+
+        json missingCount = getMissingCount();
+        if (missingCount is ()) {
+            res.statusCode = 500;
+            res.setPayload("Cannot get device ids"); 
+        } else {
+            res.setJsonPayload(<@untainted>missingCount);
+        }
+
+        var result = caller->respond(res);
+        if (result is error) {
+           log:printError("Error in responding", result);
+        }
+    }
+
+    @http:ResourceConfig {
         methods: ["POST"],
         path: "/add-responsible-person-info"
     }
@@ -61,7 +83,7 @@ service quarantineMonitor on new http:Listener(9090) {
 
         var payload = req.getJsonPayload();
         if (payload is json) {
-            if (!manageNotification_v2(payload)) {
+            if (!manageNotification(payload)) {
                 res.statusCode = 500;
                 res.setPayload("Error in sending notification");                
             } 
@@ -78,7 +100,7 @@ service quarantineMonitor on new http:Listener(9090) {
     }
 
     @http:ResourceConfig {
-        methods: ["GET"],
+        methods: ["POST"],
         path: "/get-device-ids/{reveicerId}"
     }
     resource function getDeviceInfo(http:Caller caller, http:Request req, string reveicerId) {

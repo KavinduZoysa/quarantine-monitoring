@@ -8,112 +8,21 @@ public function addDeviceInfo(json info) returns boolean {
     return addDeviceInfoToTable(info.device_id.toString(), info.mac_address.toString());
 }
 
-@deprecated
-public function manageNotification(string receiverId, string deviceId) returns boolean {
-    if (deviceId == "-1") { 
-        return true;
-    }
-    log:printInfo("Quarantine rules violation is detected.");
-
-    json[] person = <json[]>getPersonInfo(deviceId);
-    boolean isPersonPresent = false;
-    if (person[0].is_person_present is boolean) {
-        isPersonPresent = <boolean> person[0].is_person_present;
-    } 
-
-    if (!isPersonPresent) {
-        log:printError("Person is not available for device id : " + deviceId);
-        return false;
-    }
-    log:printInfo("Quarantine rules are violated by " + person[0].name.toString());
-
-    json[] responsiblePerson = <json[]>getResponsiblePersonInfo(receiverId);
-    if (responsiblePerson[0] is ()) {
-        log:printError("Responsible person is not assigned for receiver id : " + receiverId);
-        return false;
-    }
-
-    if (!sendNotification(responsiblePerson[0].phone_number.toString(), person[0].name.toString(), person[0].address.toString())) {
-        log:printError("Error in sending notification.");
-        return false;
-    }
-    return true;
-}
-
-@deprecated
-public function manageNotification_v1(json receiverInfo) returns boolean {
-
-    string receiverId = "";
-    if (receiverInfo.receiver_id is string) {
-        receiverId = <string> receiverInfo.receiver_id;
-    }
-    if (receiverId == "") {
-        return false;
-    }
-
-    map<int> deviceInfoFromReceiver = {};
-    if (receiverInfo.devices is json) {
-        deviceInfoFromReceiver = exatractMacAddresses1(<json[]> receiverInfo.devices);
-    }
-
-    json deviceIds = getDeviceIds(receiverId);
-    map<string> deviceInfoFromDb = exatractMacAddresses2(<json[]>deviceIds);
-    string[] missingIds = compareMacAddressses(deviceInfoFromDb, deviceInfoFromReceiver);
-
-    if (missingIds.length() == 0) {
-        return true;
-    }
-
-    foreach var deviceId in missingIds {
-        json[] person = <json[]>getPersonInfo(deviceId);
-        json personInfo = person[0];
-        boolean isPersonPresent = false;
-        if (personInfo.is_person_present is boolean) {
-            isPersonPresent = <boolean> personInfo.is_person_present;
-        } 
-
-        if (!isPersonPresent) {
-            log:printError("Person is not available for device id : " + deviceId);
-            return false;
-        }
-        log:printInfo("Quarantine rules are violated by " + personInfo.name.toString());
-
-        json[] responsiblePerson = <json[]>getResponsiblePersonInfo(receiverId);
-        if (responsiblePerson[0] is ()) {
-            log:printError("Responsible person is not assigned for receiver id : " + receiverId);
-            return false;
-        }
-
-        if (!sendNotification(responsiblePerson[0].phone_number.toString(), personInfo.name.toString(), personInfo.address.toString())) {
-            log:printError("Error in sending notification.");
-            return false;
-        }
-    }
-    return true;
-}
-
-type Foo record {
-    int i;
-};
-
-public function manageNotification_v2(json receiverInfo) returns boolean {
+public function manageNotification(json receiverInfo) returns boolean {
     string receiverId = "";
     if (receiverInfo.receiver_id is string) {
         receiverId = <string> receiverInfo.receiver_id;
     }
     log:printInfo("RECEIVER ID : " + receiverId);
 
-    map<Foo> m = {};
     json[] missingDeviceIds = [];
     if (receiverInfo.missing_ids is json[]) {
         missingDeviceIds = <json[]> receiverInfo.missing_ids;
     }
 
     json[] receiverBindedInfo = getReceiverBindedInfo(receiverId);
-    // log:printInfo("MIssing ID : " + receiverBindedInfo.toString());
 
     map<json> mapOfDeviceInfo = createMap(receiverBindedInfo);
-    // log:printInfo("MIssing ID : " + mapOfDeviceInfo.toString());
     map<int> missingCount = {};
     foreach var missingDeviceId in missingDeviceIds {
         string missingId = <string>missingDeviceId;
@@ -171,35 +80,6 @@ public function createMap(json[] receiverBindedInfo) returns map<json> {
     return m;
 }
 
-
-public function exatractMacAddresses1(json[] macAddresses) returns map<int> {
-    map<int> m = {};
-    foreach var macAddress in macAddresses {
-        m[<string>macAddress.mac_address] = <int>macAddress.rssi;
-    }
-    return m;
-}
-
-public function exatractMacAddresses2(json[] devices) returns map<string> {
-    map<string> m = {};
-    foreach var device in devices {
-        m[<string>device.mac_address] = <string>device.device_id;
-    }
-    return m;
-}
-
-public function compareMacAddressses(map<string> deviceInfoFromDb, map<int> deviceInfoFromReceiver) returns string[] {
-    string[] missingDeviceIds = [];
-    int i = 0;
-    foreach var [k, v] in deviceInfoFromDb.entries() {
-        if (!deviceInfoFromReceiver.hasKey(k)) {
-            missingDeviceIds[i] = v;
-            i = i+1;
-        }
-    }
-    return missingDeviceIds;
-}
-
 public function addResponsiblePerson(json info) returns boolean {
     return addResponsiblePersonInfo(info.receiver_id.toString(),
                                     info.name.toString(),
@@ -227,6 +107,10 @@ public function addPersonInfo(json info) returns boolean {
 
 public function getDeviceIds(string receiverId) returns json {
     return getDeviceIdsFromDb(receiverId);
+}
+
+public function getMissingCount() returns json {
+    return getMissingCountPerPerson();
 }
 
 public function populateTables() returns boolean {
