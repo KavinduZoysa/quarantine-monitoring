@@ -18,53 +18,59 @@ jdbc:Client qurantineMonitorDb = new ({
 // });
 
 public function checkDbConnectivity() returns boolean {
-    var returned = qurantineMonitorDb->update("USE quarantine_monitor");
+    var returned = qurantineMonitorDb->update(USE_DB);
     if (returned is jdbc:UpdateResult) {
         log:printInfo("Use database `quarantine_monitor` with status: " + returned.updatedRowCount.toString());
         return true;
     } else {
-        log:printError("failed: " + <string>returned.detail()?.message);
+        log:printError(FAILED + <string>returned.detail()?.message);
     }
     return false;
 }
 
 public function createTables() returns boolean {
-    var returned = qurantineMonitorDb->update("CREATE TABLE device_info(device_id VARCHAR(255), mac_address VARCHAR(255), is_person_present boolean, " + 
-    " name VARCHAR(255), address VARCHAR(255), age INT, inserted_time TIMESTAMP , receiver_id VARCHAR(255), PRIMARY KEY (device_id))");
+    var returned = qurantineMonitorDb->update(CREATE_DEVICE_INFO_TABLE);
 
     if (returned is jdbc:UpdateResult) {
         log:printInfo("Created the table `device_info` with status: " + returned.updatedRowCount.toString());
     } else {
-        log:printError("failed: " + <string>returned.detail()?.message);
+        log:printError(FAILED + <string>returned.detail()?.message);
     }
 
-    returned = qurantineMonitorDb->update("CREATE TABLE responsible_person(receiver_id VARCHAR(255), name VARCHAR(255), address VARCHAR(255), " + 
-    " phone_number VARCHAR(255), PRIMARY KEY (receiver_id))"); 
+    returned = qurantineMonitorDb->update(CREATE_RESPONSIBLE_PERSON_INFO_TABLE); 
     
     if (returned is jdbc:UpdateResult) {
-        log:printInfo("Created the table `device_info` with status: " + returned.updatedRowCount.toString());
+        log:printInfo("Created the table `responsible_person_info` with status: " + returned.updatedRowCount.toString());
         return true;
     } else {
-        log:printError("failed: " + <string>returned.detail()?.message);
+        log:printError(FAILED + <string>returned.detail()?.message);
+    }
+
+    returned = qurantineMonitorDb->update(CREATE_RECEIVER_ID_MAPPING); 
+    
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Created the table `receiver_id_mapping` with status: " + returned.updatedRowCount.toString());
+        return true;
+    } else {
+        log:printError(FAILED + <string>returned.detail()?.message);
     }
 
     log:printError("Cannot create the tables");
     return false;
 }
 
-public function addResponsiblePersonInfo(string receiverId, string name, string address, string phoneNumber) returns boolean {
+public function addResponsiblePersonInfo(string username, string password, string name, string phoneNumber) returns boolean {
 
-    var returned = qurantineMonitorDb->update("INSERT INTO responsible_person(receiver_id, name, address, phone_number) " + 
-    " values (?, ?, ?, ?)", receiverId, name, address, phoneNumber);
+    var returned = qurantineMonitorDb->update(ADD_RESPONSIBLE_PERSON, username, password, name, phoneNumber);
 
     if (returned is jdbc:UpdateResult) {
-        log:printInfo("Inseted the receiver id :" + receiverId + 
-                    " and name : " + name + 
-                    " and address : " + address + 
+        log:printInfo("Inseted the receiver id :" + username + 
+                    " and name : " + password + 
+                    " and address : " + name + 
                     " and phone number : " + phoneNumber + " with status: " + returned.updatedRowCount.toString());
         return true;
     } else {
-        log:printInfo("failed: " + <string>returned.detail()?.message);
+        log:printInfo(FAILED + <string>returned.detail()?.message);
     }
 
     string message = "Error in inserting values to the table `responsible_person`";
@@ -73,13 +79,13 @@ public function addResponsiblePersonInfo(string receiverId, string name, string 
 }
 public function addDeviceInfoToTable(string deviceId, string macAddress) returns boolean {
 
-    var returned = qurantineMonitorDb->update("INSERT INTO device_info(device_id, mac_address) values (?, ?)", deviceId, macAddress);
+    var returned = qurantineMonitorDb->update(ADD_DEVICE_INFO, deviceId, macAddress);
 
     if (returned is jdbc:UpdateResult) {
-        log:printInfo("Inseted the device id :" + deviceId + " and mac address : " + macAddress + " with status: " + returned.updatedRowCount.toString());
+        log:printInfo("Inserted the device id :" + deviceId + " and mac address : " + macAddress + " with status: " + returned.updatedRowCount.toString());
         return true;
     } else {
-        log:printInfo("failed: " + <string>returned.detail()?.message);
+        log:printInfo(FAILED + <string>returned.detail()?.message);
     }
 
     string message = "Error in inserting values to the table `device_info`";
@@ -95,8 +101,7 @@ public function updateDeviceInfo(boolean isPersonPresent, string name, string ad
         value: time:currentTime()
     };   
 
-    var returned = qurantineMonitorDb->update("UPDATE device_info SET is_person_present = ?, name = ?, address = ?, age = ?, " +
-        " inserted_time = ?, receiver_id = ?  WHERE device_id = ?", isPersonPresent, name, address, age, insertedTime, receiverId, deviceId);
+    var returned = qurantineMonitorDb->update(UPDATE_DEVICE_INFO, isPersonPresent, name, address, age, insertedTime, receiverId, deviceId);
 
     if (returned is jdbc:UpdateResult) {
         log:printInfo("Updated the isPersonPresent :" + isPersonPresent.toString() + 
@@ -107,7 +112,7 @@ public function updateDeviceInfo(boolean isPersonPresent, string name, string ad
                         " where device id :" + deviceId + " with status :" + returned.updatedRowCount.toString());
         return true;
     } else {
-        log:printInfo("failed: " + <string>returned.detail()?.message);
+        log:printInfo(FAILED + <string>returned.detail()?.message);
     }
     return false;
 }
@@ -119,7 +124,7 @@ type DeviceId record {|
 
 public function getDeviceIdsFromDb(string receiverId) returns json {
 
-    var selectRet = qurantineMonitorDb->select("SELECT device_id, mac_address FROM device_info where receiver_id = ?", DeviceId, receiverId);
+    var selectRet = qurantineMonitorDb->select(SELECT_DEVICE_INFO, DeviceId, receiverId);
 
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
@@ -140,7 +145,7 @@ type Person record {|
 
 public function getPersonInfo(string deviceId) returns json {
     
-    var selectRet = qurantineMonitorDb->select("SELECT is_person_present, name, address FROM device_info where device_id = ?", Person, deviceId);
+    var selectRet = qurantineMonitorDb->select(SELECT_PERSON_INFO, Person, deviceId);
 
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
@@ -160,7 +165,7 @@ type ResponsiblePerson record {|
 
 public function getResponsiblePersonInfo(string receiverId) returns json {
 
-    var selectRet = qurantineMonitorDb->select("SELECT name, phone_number FROM responsible_person where receiver_id = ?", ResponsiblePerson, receiverId);
+    var selectRet = qurantineMonitorDb->select(SELECT_RESPONSIBLE_PERSON_INFO, ResponsiblePerson, receiverId);
 
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
@@ -183,7 +188,7 @@ type DeviceInfo record {|
 
 public function getReceiverBindedInfo(string receiverId) returns json[] {
 
-    var selectRet = qurantineMonitorDb->select("SELECT device_id, is_person_present, name, address, missing_count FROM device_info where receiver_id = ?", DeviceInfo, receiverId);
+    var selectRet = qurantineMonitorDb->select(SELECT_RECEIVER_BINDED_INFO, DeviceInfo, receiverId);
 
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
@@ -203,7 +208,7 @@ public function updateMissingCount(map<int> missingCount) returns boolean {
         log:printInfo("Missing counts are updated successfully.");
         return true;
     } else {
-        log:printInfo("failed: " + <string>returned.detail()?.message);
+        log:printInfo(FAILED + <string>returned.detail()?.message);
     }
     return false;
 
@@ -233,12 +238,14 @@ public function createMissingCountString(map<int> missingCount) returns string {
 
 type MissingStatus record {
     string device_id;
+    string name;
+    string address;
     boolean is_missing;
 };
 
 public function getMissingCountPerPerson() returns json {
 
-    var selectRet = qurantineMonitorDb->select("SELECT device_id, IF(missing_count> 10, TRUE, FALSE) AS is_missing FROM device_info", MissingStatus);
+    var selectRet = qurantineMonitorDb->select(SELECT_MISSING_COUNT, MissingStatus);
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
         jsonConversionRet = jsonutils:fromTable(selectRet);

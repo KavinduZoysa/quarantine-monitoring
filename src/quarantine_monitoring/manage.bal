@@ -13,7 +13,11 @@ public function manageNotification(json receiverInfo) returns boolean {
     if (receiverInfo.receiver_id is string) {
         receiverId = <string> receiverInfo.receiver_id;
     }
-    log:printInfo("RECEIVER ID : " + receiverId);
+    json[] responsiblePersonInfo = getResponsiblePersonInfoFor(receiverId);
+    if (responsiblePersonInfo.length() == 0) {
+        log:printError("Responsible person is not assigned for receiver id : " + receiverId);
+        return false;
+    }
 
     json[] missingDeviceIds = [];
     if (receiverInfo.missing_ids is json[]) {
@@ -31,7 +35,7 @@ public function manageNotification(json receiverInfo) returns boolean {
             int i = <int>deviceInfo.missing_count;
             i = i + 1;
             if (i >= 20) {
-                notify(missingId, receiverId);
+                notify(missingId, receiverId, responsiblePersonInfo);
             }
             missingCount[missingId] = i;
             json remove = mapOfDeviceInfo.remove(missingId);
@@ -45,7 +49,11 @@ public function manageNotification(json receiverInfo) returns boolean {
     return updateMissingCount(missingCount);
 }
 
-public function notify(string deviceId, string receiverId) {
+public function getResponsiblePersonInfoFor(string receiverId) returns json[] {
+    return <json[]> getResponsiblePersonInfo(receiverId);
+}
+
+public function notify(string deviceId, string receiverId, json[] responsiblePersonInfo) {
     json[] person = <json[]>getPersonInfo(deviceId);
     json personInfo = person[0];
     boolean isPersonPresent = false;
@@ -59,16 +67,13 @@ public function notify(string deviceId, string receiverId) {
     }
     log:printInfo("Quarantine rules are violated by " + personInfo.name.toString());
 
-    json[] responsiblePerson = <json[]>getResponsiblePersonInfo(receiverId);
-    if (responsiblePerson[0] is ()) {
-        log:printError("Responsible person is not assigned for receiver id : " + receiverId);
-        return;
+    foreach var responsiblePerson in responsiblePersonInfo {
+        if (!sendNotification(responsiblePerson.phone_number.toString(), 
+                              personInfo.name.toString(), 
+                              personInfo.address.toString())) {
+            log:printError("Error in sending notification to : " + personInfo.name.toString());
+        }
     }
-
-    if (sendNotification(responsiblePerson[0].phone_number.toString(), personInfo.name.toString(), personInfo.address.toString())) {
-        return;
-    }
-    log:printError("Error in sending notification.");
     return;
 }
 
@@ -81,9 +86,9 @@ public function createMap(json[] receiverBindedInfo) returns map<json> {
 }
 
 public function addResponsiblePerson(json info) returns boolean {
-    return addResponsiblePersonInfo(info.receiver_id.toString(),
+    return addResponsiblePersonInfo(info.username.toString(),
+                                    info.password.toString(),
                                     info.name.toString(),
-                                    info.address.toString(),
                                     info.phone_number.toString());
 }
 

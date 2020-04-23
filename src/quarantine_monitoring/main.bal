@@ -19,10 +19,7 @@ service quarantineMonitor on new http:Listener(9090) {
         };
         res.setJsonPayload(<@untainted>responseJson);
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
 
     @http:ResourceConfig {
@@ -41,10 +38,7 @@ service quarantineMonitor on new http:Listener(9090) {
             res.setJsonPayload(<@untainted>missingCount);
         }
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
 
     @http:ResourceConfig {
@@ -64,13 +58,10 @@ service quarantineMonitor on new http:Listener(9090) {
         } else {
             res.statusCode = 500;
             res.setPayload(<@untainted string>payload.detail()?.message);
-            log:printError("Invalid format in request body");
+            log:printError(ERROR_INVALID_FORMAT);
         }
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
 
     @http:ResourceConfig {
@@ -90,13 +81,10 @@ service quarantineMonitor on new http:Listener(9090) {
         } else {
             res.statusCode = 500;
             res.setPayload(<@untainted string>payload.detail()?.message);
-            log:printError("Invalid format in request body");
+            log:printError(ERROR_INVALID_FORMAT);
         }
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
 
     @http:ResourceConfig {
@@ -115,10 +103,7 @@ service quarantineMonitor on new http:Listener(9090) {
             res.setJsonPayload(<@untainted>deviceIds);
         }
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
 
     @http:ResourceConfig {
@@ -138,13 +123,10 @@ service quarantineMonitor on new http:Listener(9090) {
         } else {
             res.statusCode = 500;
             res.setPayload(<@untainted string>payload.detail()?.message);
-            log:printError("Invalid format in request body");
+            log:printError(ERROR_INVALID_FORMAT);
         }
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
 
     @http:ResourceConfig {
@@ -164,13 +146,10 @@ service quarantineMonitor on new http:Listener(9090) {
         } else {
             res.statusCode = 500;
             res.setPayload(<@untainted string>payload.detail()?.message);
-            log:printError("Invalid format in request body");
+            log:printError(ERROR_INVALID_FORMAT);
         }
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
 
     @http:ResourceConfig {
@@ -185,9 +164,14 @@ service quarantineMonitor on new http:Listener(9090) {
             res.setPayload("Cannot create tables");
         }
 
-        var result = caller->respond(res);
-        if (result is error) {
-           log:printError("Error in responding", result);
-        }
+        respondClient(caller, res);
     }
+
+}
+
+public function respondClient(http:Caller caller, http:Response res) {
+    var result = caller->respond(res);
+    if (result is error) {
+        log:printError(ERROR_IN_RESPONDING, result);
+    }       
 }
