@@ -8,6 +8,13 @@ INSERT INTO quarantine_monitor.device_info(device_id, mac_address) values ("0001
 UPDATE quarantine_monitor.device_info SET is_person_present = true, name = 'Frankfurt', address = 'Rathgama, Galle'
 , age = 45, inserted_time = '2008-01-01 00:00:01', receiver_id = '0001'  WHERE device_id = "0001";
 
+UPDATE quarantine_monitor.device_info 
+	SET missing_count = CASE device_id
+			   WHEN "0001" THEN 1
+               WHEN "0002" THEN 2
+               END
+               WHERE device_id IN("0001", "0002");
+
 SELECT device_id FROM device_info where receiver_id = "0001"; 
 SELECT is_person_present, name, address FROM device_info where device_id = "0005";
  
@@ -44,5 +51,11 @@ INSERT INTO responsible_person_info(username, password, name, phone_number) valu
 INSERT INTO responsible_person_info(username, password, name, phone_number) values('user3', 'use2345', 'PHI Kamal', '+94710630867');
 
 SELECT phi_id FROM receiver_id_mapping where receiver_id = '0001';
+
+SELECT name, phone_number from responsible_person_info WHERE id IN (SELECT phi_id FROM receiver_id_mapping where receiver_id = '0001');
+
+SELECT device_id, name, address, IF(missing_count>= 20, TRUE, FALSE) AS is_missing FROM device_info WHERE is_person_present;
+
+INSERT INTO receiver_id_mapping(receiver_id, phi_id) values('0003', (SELECT id FROM responsible_person_info WHERE username = "user1"));
 
 SELECT name, phone_number from responsible_person_info WHERE id IN (SELECT phi_id FROM receiver_id_mapping where receiver_id = '0001');

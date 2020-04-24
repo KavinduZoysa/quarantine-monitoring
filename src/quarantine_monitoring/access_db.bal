@@ -59,7 +59,7 @@ public function createTables() returns boolean {
     return false;
 }
 
-public function addResponsiblePersonInfo(string username, string password, string name, string phoneNumber) returns boolean {
+public function addResponsiblePerson(string username, string password, string name, string phoneNumber) returns boolean {
 
     var returned = qurantineMonitorDb->update(ADD_RESPONSIBLE_PERSON, username, password, name, phoneNumber);
 
@@ -100,7 +100,6 @@ public function updateDeviceInfo(boolean isPersonPresent, string name, string ad
         sqlType: jdbc:TYPE_TIMESTAMP,
         value: time:currentTime()
     };   
-
     var returned = qurantineMonitorDb->update(UPDATE_DEVICE_INFO, isPersonPresent, name, address, age, insertedTime, receiverId, deviceId);
 
     if (returned is jdbc:UpdateResult) {
@@ -129,7 +128,7 @@ public function getDeviceIdsFromDb(string receiverId) returns json {
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
         jsonConversionRet = jsonutils:fromTable(selectRet);
-        log:printInfo(" Device ids JSON: " + jsonConversionRet.toJsonString());
+        log:printInfo("Device ids JSON: " + jsonConversionRet.toJsonString());
     } else {
         log:printInfo("Select device ids from device_info table failed: " + <string>selectRet.detail()?.message);
     }
@@ -246,12 +245,34 @@ type MissingStatus record {
 public function getMissingCountPerPerson() returns json {
 
     var selectRet = qurantineMonitorDb->select(SELECT_MISSING_COUNT, MissingStatus);
+
     json jsonConversionRet = ();
     if (selectRet is table<record{}>) {
         jsonConversionRet = jsonutils:fromTable(selectRet);
-        log:printInfo(" Device ids JSON: " + jsonConversionRet.toJsonString());
+        log:printInfo("Device ids JSON: " + jsonConversionRet.toJsonString());
     } else {
         log:printInfo("Select device ids from device_info table failed: " + <string>selectRet.detail()?.message);
+    }
+    
+    return jsonConversionRet; 
+}
+
+type LoginResult record {
+    int user_id;
+    string username;
+    string fullname;
+};
+
+public function getResponsiblePersonInfoForLogin(string username, string password) returns json {
+
+    var selectRet = qurantineMonitorDb->select(SELECT_RESPONSIBLE_PERSON_INFO_FOR_LOGIN, LoginResult, username, password);
+
+    json jsonConversionRet = ();
+    if (selectRet is table<record{}>) {
+        jsonConversionRet = jsonutils:fromTable(selectRet);
+        log:printInfo("Login results JSON: " + jsonConversionRet.toJsonString());
+    } else {
+        log:printInfo("Select login results from responsible_person_info table failed: " + <string>selectRet.detail()?.message);
     }
     
     return jsonConversionRet; 

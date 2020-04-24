@@ -19,3 +19,4 @@ const string SELECT_RESPONSIBLE_PERSON_INFO = "SELECT name, phone_number from re
 const string SELECT_RECEIVER_BINDED_INFO = "SELECT device_id, is_person_present, name, address, missing_count FROM device_info where receiver_id = ?";
 const string SELECT_MISSING_COUNT = "SELECT device_id, name, address, IF(missing_count>= 20, TRUE, FALSE) AS is_missing " + 
     " FROM device_info WHERE is_person_present";
+const string SELECT_RESPONSIBLE_PERSON_INFO_FOR_LOGIN = "SELECT id AS user_id, name AS fullname, username from responsible_person_info WHERE username = ? AND password = ?;";

@@ -85,13 +85,6 @@ public function createMap(json[] receiverBindedInfo) returns map<json> {
     return m;
 }
 
-public function addResponsiblePerson(json info) returns boolean {
-    return addResponsiblePersonInfo(info.username.toString(),
-                                    info.password.toString(),
-                                    info.name.toString(),
-                                    info.phone_number.toString());
-}
-
 public function addPersonInfo(json info) returns boolean {
     int age = 0;
     if (info.age is int) {
@@ -120,4 +113,29 @@ public function getMissingCount() returns json {
 
 public function populateTables() returns boolean {
     return createTables();
+}
+
+public function signUp(json info) returns boolean {
+    return addResponsiblePerson(info.username.toString(),
+                                info.password.toString(),
+                                info.fullname.toString(),
+                                info.phone_number.toString());
+}
+
+public function getLoginInfo(json responsiblePersonInfo) returns json {
+    json[] responsiblePersons = <json[]>getResponsiblePersonInfoForLogin(responsiblePersonInfo.username.toString(), 
+                                                                  responsiblePersonInfo.password.toString());
+
+    json responseJson = {};
+    if (responsiblePersons.length() == 0) {
+        responseJson = {
+            "success" : false
+        };
+    } else {
+        responseJson = {
+            "success" : true,
+            "result" : responsiblePersons[0]
+        };
+    }
+    return responseJson;
 }

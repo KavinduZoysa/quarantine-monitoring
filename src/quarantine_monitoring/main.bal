@@ -7,6 +7,49 @@ import ballerina/log;
 service quarantineMonitor on new http:Listener(9090) {
 
     @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/login"
+    }
+    resource function logIn(http:Caller caller, http:Request req) {
+        http:Response res = new;
+
+        var payload = req.getJsonPayload();
+
+        if (payload is json) {            
+            res.setJsonPayload(<@untainted>getLoginInfo(payload));
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError(ERROR_INVALID_FORMAT);
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/signup"
+    }
+    resource function signUp(http:Caller caller, http:Request req) {
+        http:Response res = new;
+
+        var payload = req.getJsonPayload();
+
+        if (payload is json) {
+            json responseJson = {
+                "success" : signUp(payload)
+            };
+            res.setJsonPayload(<@untainted>responseJson);
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError(ERROR_INVALID_FORMAT);
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
         methods: ["GET"],
         path: "/health-check"
     }
@@ -36,29 +79,6 @@ service quarantineMonitor on new http:Listener(9090) {
             res.setPayload("Cannot get device ids"); 
         } else {
             res.setJsonPayload(<@untainted>missingCount);
-        }
-
-        respondClient(caller, res);
-    }
-
-    @http:ResourceConfig {
-        methods: ["POST"],
-        path: "/add-responsible-person-info"
-    }
-    resource function addResponsiblePersonInfo(http:Caller caller, http:Request req) {
-
-        var payload = req.getJsonPayload();
-        http:Response res = new;
-
-        if (payload is json) {
-            if (!addResponsiblePerson(payload)) {
-                res.statusCode = 500;
-                res.setPayload("Cannot add person information");                
-            } 
-        } else {
-            res.statusCode = 500;
-            res.setPayload(<@untainted string>payload.detail()?.message);
-            log:printError(ERROR_INVALID_FORMAT);
         }
 
         respondClient(caller, res);
