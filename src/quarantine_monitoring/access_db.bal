@@ -55,12 +55,29 @@ public function createTables() returns boolean {
         log:printError(FAILED + <string>returned.detail()?.message);
     }
 
+    returned = qurantineMonitorDb->update(CREATE_RAW_DATA_TABLE); 
+    
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Created the table `raw_data` with status: " + returned.updatedRowCount.toString());
+        return true;
+    } else {
+        log:printError(FAILED + <string>returned.detail()?.message);
+    }
+
+    returned = qurantineMonitorDb->update(CREATE_DEVICE_INFO_DUMP_TABLE); 
+    
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Created the table `device_info_dump` with status: " + returned.updatedRowCount.toString());
+        return true;
+    } else {
+        log:printError(FAILED + <string>returned.detail()?.message);
+    }
+
     log:printError("Cannot create the tables");
     return false;
 }
 
-public function addResponsiblePerson(string username, string password, string name, string phoneNumber) returns boolean {
-
+public function addResponsiblePerson(json info, string username, string password, string name, string phoneNumber) returns boolean {
     var returned = qurantineMonitorDb->update(ADD_RESPONSIBLE_PERSON, username, password, name, phoneNumber);
 
     if (returned is jdbc:UpdateResult) {
@@ -68,6 +85,7 @@ public function addResponsiblePerson(string username, string password, string na
                     " and name : " + password + 
                     " and address : " + name + 
                     " and phone number : " + phoneNumber + " with status: " + returned.updatedRowCount.toString());
+        addAsRawData(info.toJsonString());
         return true;
     } else {
         log:printInfo(FAILED + <string>returned.detail()?.message);
@@ -77,12 +95,12 @@ public function addResponsiblePerson(string username, string password, string na
     log:printInfo(message);
     return false;
 }
-public function addDeviceInfoToTable(string deviceId, string macAddress) returns boolean {
-
+public function addDeviceInfoToTable(json info, string deviceId, string macAddress) returns boolean {
     var returned = qurantineMonitorDb->update(ADD_DEVICE_INFO, deviceId, macAddress);
 
     if (returned is jdbc:UpdateResult) {
         log:printInfo("Inserted the device id :" + deviceId + " and mac address : " + macAddress + " with status: " + returned.updatedRowCount.toString());
+        addAsRawData(info.toJsonString());
         return true;
     } else {
         log:printInfo(FAILED + <string>returned.detail()?.message);
@@ -93,7 +111,7 @@ public function addDeviceInfoToTable(string deviceId, string macAddress) returns
     return false;
 }
 
-public function updateDeviceInfo(boolean isPersonPresent, string name, string address, int age, string receiverId, 
+public function updateDeviceInfo(json info, boolean isPersonPresent, string name, string address, int age, string receiverId, 
                                     string deviceId) returns boolean {
 
     jdbc:Parameter insertedTime = {
@@ -109,6 +127,7 @@ public function updateDeviceInfo(boolean isPersonPresent, string name, string ad
                         " and age :" + age.toString() +
                         " and receiver id :" + receiverId +
                         " where device id :" + deviceId + " with status :" + returned.updatedRowCount.toString());
+        addAsRawData(info.toJsonString());
         return true;
     } else {
         log:printInfo(FAILED + <string>returned.detail()?.message);
@@ -122,7 +141,6 @@ type DeviceId record {|
 |};
 
 public function getDeviceIdsFromDb(string receiverId) returns json {
-
     var selectRet = qurantineMonitorDb->select(SELECT_DEVICE_INFO, DeviceId, receiverId);
 
     json jsonConversionRet = ();
@@ -143,7 +161,6 @@ type Person record {|
 |};
 
 public function getPersonInfo(string deviceId) returns json {
-    
     var selectRet = qurantineMonitorDb->select(SELECT_PERSON_INFO, Person, deviceId);
 
     json jsonConversionRet = ();
@@ -163,7 +180,6 @@ type ResponsiblePerson record {|
 |};
 
 public function getResponsiblePersonInfo(string receiverId) returns json {
-
     var selectRet = qurantineMonitorDb->select(SELECT_RESPONSIBLE_PERSON_INFO, ResponsiblePerson, receiverId);
 
     json jsonConversionRet = ();
@@ -186,7 +202,6 @@ type DeviceInfo record {|
 |};
 
 public function getReceiverBindedInfo(string receiverId) returns json[] {
-
     var selectRet = qurantineMonitorDb->select(SELECT_RECEIVER_BINDED_INFO, DeviceInfo, receiverId);
 
     json jsonConversionRet = ();
@@ -243,7 +258,6 @@ type MissingStatus record {
 };
 
 public function getMissingCountPerPerson() returns json {
-
     var selectRet = qurantineMonitorDb->select(SELECT_MISSING_COUNT, MissingStatus);
 
     json jsonConversionRet = ();
@@ -263,8 +277,7 @@ type LoginResult record {
     string fullname;
 };
 
-public function getResponsiblePersonInfoForLogin(string username, string password) returns json {
-
+public function getResponsiblePersonInfoForLogin(string username, string password) returns json[] {
     var selectRet = qurantineMonitorDb->select(SELECT_RESPONSIBLE_PERSON_INFO_FOR_LOGIN, LoginResult, username, password);
 
     json jsonConversionRet = ();
@@ -275,5 +288,39 @@ public function getResponsiblePersonInfoForLogin(string username, string passwor
         log:printInfo("Select login results from responsible_person_info table failed: " + <string>selectRet.detail()?.message);
     }
     
-    return jsonConversionRet; 
+    return <json[]>jsonConversionRet; 
+}
+
+public function addAsRawData(string rawData) {
+    var returned = qurantineMonitorDb->update(ADD_RAW_DATA, rawData);
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Added raw data");
+    } else {
+        log:printInfo(FAILED + <string>returned.detail()?.message);
+        log:printInfo("Error in adding raw data to the table `raw_data`");
+    }
+}
+
+public function deletePersonEntry(string deviceId) returns boolean {
+    var returned = qurantineMonitorDb->update(UPDATE_PERSON_PRESENCE, false, deviceId);
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Remove person from the table `device_info`");
+        dumpEntry(deviceId);
+        return true;
+    } else {
+        log:printInfo(FAILED + <string>returned.detail()?.message);
+    }
+    return false;
+}
+
+public function dumpEntry(string deviceId) {
+    var returned = qurantineMonitorDb->update(DUMP_DEVICE_INFO_ENTRY, deviceId);
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Dump the device id info to the table `device_info_dump`");
+    } else {
+        log:printInfo(FAILED + <string>returned.detail()?.message);
+    }
 }

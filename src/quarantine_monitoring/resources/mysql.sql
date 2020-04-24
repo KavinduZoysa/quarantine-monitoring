@@ -59,3 +59,8 @@ SELECT device_id, name, address, IF(missing_count>= 20, TRUE, FALSE) AS is_missi
 INSERT INTO receiver_id_mapping(receiver_id, phi_id) values('0003', (SELECT id FROM responsible_person_info WHERE username = "user1"));
 
 SELECT name, phone_number from responsible_person_info WHERE id IN (SELECT phi_id FROM receiver_id_mapping where receiver_id = '0001');
+
+CREATE TABLE device_info_dump(device_id VARCHAR(255), mac_address VARCHAR(255), is_person_present boolean, name VARCHAR(255), address VARCHAR(255), age INT, inserted_time TIMESTAMP , receiver_id VARCHAR(255));
+
+INSERT INTO device_info_dump(device_id, mac_address, is_person_present, name, address, age, inserted_time, receiver_id) 
+SELECT device_id, mac_address, is_person_present, name, address, age, inserted_time, receiver_id FROM device_info WHERE device_id = "0001";

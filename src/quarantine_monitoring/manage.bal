@@ -5,7 +5,9 @@ public function checkDb() returns boolean {
 }
 
 public function addDeviceInfo(json info) returns boolean {
-    return addDeviceInfoToTable(info.device_id.toString(), info.mac_address.toString());
+    return addDeviceInfoToTable(info, 
+                                info.device_id.toString(), 
+                                info.mac_address.toString());
 }
 
 public function manageNotification(json receiverInfo) returns boolean {
@@ -95,7 +97,8 @@ public function addPersonInfo(json info) returns boolean {
         isPersonPresent = <boolean> info.is_person_present;
     }
 
-    return updateDeviceInfo(isPersonPresent,
+    return updateDeviceInfo(info,
+                            isPersonPresent,
                             info.name.toString(),
                             info.address.toString(),
                             age,
@@ -116,14 +119,15 @@ public function populateTables() returns boolean {
 }
 
 public function signUp(json info) returns boolean {
-    return addResponsiblePerson(info.username.toString(),
+    return addResponsiblePerson(info,
+                                info.username.toString(),
                                 info.password.toString(),
                                 info.fullname.toString(),
                                 info.phone_number.toString());
 }
 
 public function getLoginInfo(json responsiblePersonInfo) returns json {
-    json[] responsiblePersons = <json[]>getResponsiblePersonInfoForLogin(responsiblePersonInfo.username.toString(), 
+    json[] responsiblePersons = getResponsiblePersonInfoForLogin(responsiblePersonInfo.username.toString(), 
                                                                   responsiblePersonInfo.password.toString());
 
     json responseJson = {};
@@ -138,4 +142,8 @@ public function getLoginInfo(json responsiblePersonInfo) returns json {
         };
     }
     return responseJson;
+}
+
+public function removePerson(json personInfo) returns boolean {
+    return deletePersonEntry(personInfo.device_id.toString());
 }

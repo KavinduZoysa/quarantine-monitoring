@@ -66,6 +66,29 @@ service quarantineMonitor on new http:Listener(9090) {
     }
 
     @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/remove-person"
+    }
+    resource function removePerson(http:Caller caller, http:Request req) {
+        http:Response res = new;
+
+        var payload = req.getJsonPayload();
+
+        if (payload is json) {
+            if (!removePerson(payload)) {
+                res.statusCode = 500;
+                res.setPayload("Error in deleting person");                
+            } 
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError(ERROR_INVALID_FORMAT);
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
         methods: ["GET"],
         path: "/get-missing-count"
     }
