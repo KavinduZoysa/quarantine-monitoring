@@ -2,7 +2,10 @@ import ballerina/http;
 import ballerina/log;
 
 @http:ServiceConfig {
-    basePath: "/quarantine-monitor"
+    basePath: "/quarantine-monitor",
+    cors: {
+        allowOrigins: ["*"]
+    }
 }
 service quarantineMonitor on new http:Listener(9090) {
 
@@ -38,6 +41,29 @@ service quarantineMonitor on new http:Listener(9090) {
         if (payload is json) {
             json responseJson = {
                 "success" : signUp(payload)
+            };
+            res.setJsonPayload(<@untainted>responseJson);
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError(ERROR_INVALID_FORMAT);
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/add-receiver-info"
+    }
+    resource function addReceiverInfo(http:Caller caller, http:Request req) {
+        http:Response res = new;
+
+        var payload = req.getJsonPayload();
+
+        if (payload is json) {
+            json responseJson = {
+                "success" : addReceiverInfo(payload)
             };
             res.setJsonPayload(<@untainted>responseJson);
         } else {
@@ -150,6 +176,31 @@ service quarantineMonitor on new http:Listener(9090) {
     }
 
     @http:ResourceConfig {
+        methods: ["GET"],
+        path: "/get-persons-status/{phiId}"
+    }
+    resource function getPersonsStatus(http:Caller caller, http:Request req, string phiId) {
+
+        http:Response res = new;
+
+        json personsInfo = getPersonsStatus(phiId);
+        json payLoad = {};
+        if !(personsInfo is ()) {
+            payLoad = {
+                "success": true,
+                "result": personsInfo
+            };
+            res.setJsonPayload(payLoad);
+        } else {
+            payLoad = {
+                "success": false
+            };
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
         methods: ["POST"],
         path: "/add-person-info"
     }
@@ -159,10 +210,10 @@ service quarantineMonitor on new http:Listener(9090) {
         http:Response res = new;
 
         if (payload is json) {
-            if (!addPersonInfo(payload)) {
-                res.statusCode = 500;
-                res.setPayload("Cannot add person information");                
-            } 
+            json responseJson = {
+                "success" : addPersonInfo(payload)
+            };
+            res.setJsonPayload(<@untainted>responseJson); 
         } else {
             res.statusCode = 500;
             res.setPayload(<@untainted string>payload.detail()?.message);

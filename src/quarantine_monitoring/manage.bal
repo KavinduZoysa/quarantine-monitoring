@@ -88,22 +88,29 @@ public function createMap(json[] receiverBindedInfo) returns map<json> {
 }
 
 public function addPersonInfo(json info) returns boolean {
-    int age = 0;
-    if (info.age is int) {
-        age = <int> info.age;
-    }
-    boolean isPersonPresent = false;
-    if (info.is_person_present is boolean) {
-        isPersonPresent = <boolean> info.is_person_present;
+
+    json[] persons = <json[]> info;
+
+    string address = getAddress(persons[0].receiver_id.toString());
+    foreach json person in persons {
+        int age = 0;
+        if (person.age is int) {
+            age = <int> person.age;
+        }
+        boolean isUpdated = updateDeviceInfo(person, 
+                                             true, 
+                                             person.name.toString(), 
+                                             address, 
+                                             age, 
+                                             person.gender.toString(), 
+                                             person.receiver_id.toString(), 
+                                             person.becon_id.toString());
+        if (!isUpdated) {
+            return false;
+        }
     }
 
-    return updateDeviceInfo(info,
-                            isPersonPresent,
-                            info.name.toString(),
-                            info.address.toString(),
-                            age,
-                            info.receiver_id.toString(),
-                            info.device_id.toString());
+    return true;
 }
 
 public function getDeviceIds(string receiverId) returns json {
@@ -128,7 +135,7 @@ public function signUp(json info) returns boolean {
 
 public function getLoginInfo(json responsiblePersonInfo) returns json {
     json[] responsiblePersons = getResponsiblePersonInfoForLogin(responsiblePersonInfo.username.toString(), 
-                                                                  responsiblePersonInfo.password.toString());
+                                                                 responsiblePersonInfo.password.toString());
 
     json responseJson = {};
     if (responsiblePersons.length() == 0) {
@@ -146,4 +153,28 @@ public function getLoginInfo(json responsiblePersonInfo) returns json {
 
 public function removePerson(json personInfo) returns boolean {
     return deletePersonEntry(personInfo.device_id.toString());
+}
+
+public function addReceiverInfo(json receiverInfo) returns boolean {
+    return updateReceiverInfo(receiverInfo.receiver_id.toString(), 
+                              receiverInfo.address.toString(), 
+                              receiverInfo.user_id.toString());
+}
+
+public function getPersonsStatus(string phiId) returns json[] {
+    json[] returned = [];
+
+    json[] receiversInfo = getReceiversInfo(phiId);
+
+    int i = 0;
+    foreach json receiverInfo in receiversInfo {
+        string receiverId = receiverInfo.receiver_id.toString(); 
+        returned[i] = {
+            "receiver_id": receiverId,
+            "address": receiverInfo.address.toString(),
+            "persons": getPersonsStatusFor(receiverId)
+        };
+        i = i + 1;
+    }
+    return returned;
 }
