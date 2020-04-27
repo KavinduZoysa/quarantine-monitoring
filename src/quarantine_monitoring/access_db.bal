@@ -3,19 +3,19 @@ import ballerina/log;
 import ballerina/time;
 import ballerina/jsonutils;
 
-// jdbc:Client qurantineMonitorDb = new ({
-//     url: "jdbc:mysql://localhost:3306/quarantine_monitor",
-//     username: "root",
-//     password: "root",
-//     dbOptions: {useSSL: false}
-// });
-
 jdbc:Client qurantineMonitorDb = new ({
-    url: "jdbc:mysql://kavindu-rds-amazon.cmwczs08iavr.us-east-2.rds.amazonaws.com:3306/quarantine_monitor",
-    username: "admin",
-    password: "adminadmin",
+    url: "jdbc:mysql://localhost:3306/quarantine_monitor",
+    username: "root",
+    password: "root",
     dbOptions: {useSSL: false}
 });
+
+// jdbc:Client qurantineMonitorDb = new ({
+//     url: "jdbc:mysql://kavindu-rds-amazon.cmwczs08iavr.us-east-2.rds.amazonaws.com:3306/quarantine_monitor",
+//     username: "admin",
+//     password: "adminadmin",
+//     dbOptions: {useSSL: false}
+// });
 
 public function checkDbConnectivity() returns boolean {
     var returned = qurantineMonitorDb->update(USE_DB);
@@ -306,7 +306,28 @@ public function deletePersonEntry(string deviceId) returns boolean {
 
     if (returned is jdbc:UpdateResult) {
         log:printInfo("Remove person from the table `device_info`");
-        dumpEntry(deviceId);
+        return true;
+    } else {
+        log:printInfo(FAILED + <string>returned.detail()?.message);
+    }
+    return false;
+}
+
+public function deletePersonsEntry(string receiverId) returns boolean {
+    var returned = qurantineMonitorDb->update(DELETE_PERSONS, receiverId);
+    log:printInfo(receiverId);
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Remove person from the table `device_info` for given receiver id");
+    } else {
+        log:printInfo("erere");
+        log:printInfo(FAILED + <string>returned.detail()?.message);
+        return false;
+    }
+
+    returned = qurantineMonitorDb->update(DELETE_RECEIVER, receiverId);
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Remove receiver from the table `receiver_info_mapping`");
         return true;
     } else {
         log:printInfo(FAILED + <string>returned.detail()?.message);

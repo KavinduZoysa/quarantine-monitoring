@@ -152,7 +152,11 @@ public function getLoginInfo(json responsiblePersonInfo) returns json {
 }
 
 public function removePerson(json personInfo) returns boolean {
-    return deletePersonEntry(personInfo.device_id.toString());
+    return deletePersonEntry(personInfo.becon_id.toString());
+}
+
+public function removeReceiver(json personInfo) returns boolean {
+    return deletePersonsEntry(personInfo.receiver_id.toString());
 }
 
 public function addReceiverInfo(json receiverInfo) returns boolean {

@@ -5,13 +5,14 @@ const FAILED = "failed: ";
 const string USE_DB = "USE quarantine_monitor";
 const string CREATE_DEVICE_INFO_TABLE = "CREATE TABLE device_info(device_id VARCHAR(255), mac_address VARCHAR(255), " + 
     " is_person_present boolean DEFAULT false, name VARCHAR(255), address VARCHAR(255), age INT, gender VARCHAR(255), inserted_time TIMESTAMP , " + 
-    " receiver_id VARCHAR(255), missing_count INT DEFAULT 0,  PRIMARY KEY (device_id))";
+    " receiver_id VARCHAR(255), missing_count INT DEFAULT 0, PRIMARY KEY (device_id))";
 const string CREATE_DEVICE_INFO_DUMP_TABLE = "CREATE TABLE device_info_dump(device_id VARCHAR(255), mac_address VARCHAR(255), " + 
     " is_person_present boolean DEFAULT false, name VARCHAR(255), address VARCHAR(255), age INT, inserted_time TIMESTAMP , " + 
     " receiver_id VARCHAR(255), PRIMARY KEY (device_id))";
 const string CREATE_RESPONSIBLE_PERSON_INFO_TABLE = "CREATE TABLE responsible_person_info(id int NOT NULL AUTO_INCREMENT PRIMARY KEY, " + 
     " username VARCHAR(255) UNIQUE, password VARCHAR(255), name VARCHAR(255), phone_number VARCHAR(255));";
-const string CREATE_RECEIVER_ID_MAPPING = "CREATE TABLE receiver_id_mapping(receiver_id VARCHAR(255), address VARCHAR(255), phi_id INT);";
+const string CREATE_RECEIVER_ID_MAPPING = "CREATE TABLE receiver_id_mapping(receiver_id VARCHAR(255), address VARCHAR(255), phi_id INT, " + 
+    " PRIMARY KEY (receiver_id));";
 const string ADD_RESPONSIBLE_PERSON = "INSERT INTO responsible_person_info(username, password, name, phone_number) values (?, ?, ?, ?)";
 const string ADD_RECEIVER_ID_MAPPING = "INSERT INTO receiver_id_mapping(receiver_id, address, phi_id) values (?, ?, ?)";
 const string ADD_DEVICE_INFO = "INSERT INTO device_info(device_id, mac_address) values (?, ?)";
@@ -34,3 +35,5 @@ const string DUMP_DEVICE_INFO_ENTRY = "INSERT INTO device_info_dump(device_id, m
 const string SELECT_ADDRESS = "SELECT address FROM receiver_id_mapping WHERE receiver_id = ?";
 const string SELECT_RECEIVER_ID = "SELECT receiver_id, address FROM receiver_id_mapping WHERE phi_id = ?";
 const string SELECT_PERSONS_STATUS = "SELECT device_id AS becon_id, name, gender, age, IF(missing_count>= 20, FALSE, TRUE) AS is_person_present FROM device_info where receiver_id = ?";
+const string DELETE_RECEIVER = "DELETE FROM receiver_id_mapping WHERE receiver_id = ?;";
+const string DELETE_PERSONS = "UPDATE device_info SET is_person_present = false WHERE receiver_id = ?";

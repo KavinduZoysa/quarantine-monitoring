@@ -100,11 +100,34 @@ service quarantineMonitor on new http:Listener(9090) {
 
         var payload = req.getJsonPayload();
 
-        if (payload is json) {
-            if (!removePerson(payload)) {
-                res.statusCode = 500;
-                res.setPayload("Error in deleting person");                
-            } 
+        if (payload is json) { 
+            json response = {
+                success: removePerson(payload)
+            };
+            res.setJsonPayload(response);
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError(ERROR_INVALID_FORMAT);
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/remove-receiver"
+    }
+    resource function removeReceiver(http:Caller caller, http:Request req) {
+        http:Response res = new;
+
+        var payload = req.getJsonPayload();
+
+        if (payload is json) { 
+            json response = {
+                success: removeReceiver(payload)
+            };
+            res.setJsonPayload(response);
         } else {
             res.statusCode = 500;
             res.setPayload(<@untainted string>payload.detail()?.message);

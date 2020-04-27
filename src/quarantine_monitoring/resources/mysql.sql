@@ -64,3 +64,11 @@ CREATE TABLE device_info_dump(device_id VARCHAR(255), mac_address VARCHAR(255), 
 
 INSERT INTO device_info_dump(device_id, mac_address, is_person_present, name, address, age, inserted_time, receiver_id) 
 SELECT device_id, mac_address, is_person_present, name, address, age, inserted_time, receiver_id FROM device_info WHERE device_id = "0001";
+
+USE quarantine_monitor;
+UPDATE device_info SET is_person_present = false WHERE device_id IN (SELECT device_id FROM device_info WHERE receiver_id = "001");
+SET SQL_SAFE_UPDATES = 1;
+-- UPDATE device_info SET is_person_present = true WHERE receiver_id = "001";
+UPDATE device_info SET is_person_present = false WHERE receiver_id = '001';
+SELECT * FROM quarantine_monitor.device_info;
+SET @ModelID = (SELECT device_id FROM device_info WHERE receiver_id = "001");
