@@ -97,15 +97,19 @@ public function addPersonInfo(json info) returns boolean {
         if (person.age is int) {
             age = <int> person.age;
         }
-        boolean isUpdated = updateDeviceInfo(person, 
-                                             true, 
-                                             person.name.toString(), 
-                                             address, 
-                                             age, 
-                                             person.gender.toString(), 
-                                             person.receiver_id.toString(), 
-                                             person.becon_id.toString());
-        if (!isUpdated) {
+        if (!updateDeviceInfo(person,
+                              person.name.toString(), 
+                              address, 
+                              age, 
+                              person.gender.toString(), 
+                              person.receiver_id.toString(), 
+                              person.becon_id.toString())) {
+            return false;
+        }
+    }
+
+    foreach json person in persons {
+        if (!updatePersonPresence(person.becon_id.toString(), true)) {
             return false;
         }
     }
@@ -152,7 +156,7 @@ public function getLoginInfo(json responsiblePersonInfo) returns json {
 }
 
 public function removePerson(json personInfo) returns boolean {
-    return deletePersonEntry(personInfo.becon_id.toString());
+    return updatePersonPresence(personInfo.becon_id.toString(), false);
 }
 
 public function removeReceiver(json personInfo) returns boolean {

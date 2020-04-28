@@ -16,8 +16,8 @@ const string CREATE_RECEIVER_ID_MAPPING = "CREATE TABLE receiver_id_mapping(rece
 const string ADD_RESPONSIBLE_PERSON = "INSERT INTO responsible_person_info(username, password, name, phone_number) values (?, ?, ?, ?)";
 const string ADD_RECEIVER_ID_MAPPING = "INSERT INTO receiver_id_mapping(receiver_id, address, phi_id) values (?, ?, ?)";
 const string ADD_DEVICE_INFO = "INSERT INTO device_info(device_id, mac_address) values (?, ?)";
-const string UPDATE_DEVICE_INFO = "UPDATE device_info SET is_person_present = ?, name = ?, address = ?, age = ?, " +
-        " inserted_time = ?, gender = ?, receiver_id = ? WHERE device_id = ?";
+const string UPDATE_DEVICE_INFO = "UPDATE device_info SET name = ?, address = ?, age = ?, " +
+        " inserted_time = ?, gender = ?, receiver_id = ? WHERE is_person_present = false AND device_id = ?";
 const string SELECT_DEVICE_INFO = "SELECT device_id, mac_address FROM device_info where receiver_id = ?";
 const string SELECT_PERSON_INFO = "SELECT is_person_present, name, address FROM device_info where device_id = ?";
 const string SELECT_RESPONSIBLE_PERSON_INFO = "SELECT name, phone_number from responsible_person_info WHERE id IN " + 

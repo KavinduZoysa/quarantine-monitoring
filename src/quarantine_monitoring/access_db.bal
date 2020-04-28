@@ -3,19 +3,19 @@ import ballerina/log;
 import ballerina/time;
 import ballerina/jsonutils;
 
-// jdbc:Client qurantineMonitorDb = new ({
-//     url: "jdbc:mysql://localhost:3306/quarantine_monitor",
-//     username: "root",
-//     password: "root",
-//     dbOptions: {useSSL: false}
-// });
-
 jdbc:Client qurantineMonitorDb = new ({
-    url: "jdbc:mysql://kavindu-rds-amazon.cmwczs08iavr.us-east-2.rds.amazonaws.com:3306/quarantine_monitor",
-    username: "admin",
-    password: "adminadmin",
+    url: "jdbc:mysql://localhost:3306/quarantine_monitor",
+    username: "root",
+    password: "root",
     dbOptions: {useSSL: false}
 });
+
+// jdbc:Client qurantineMonitorDb = new ({
+//     url: "jdbc:mysql://kavindu-rds-amazon.cmwczs08iavr.us-east-2.rds.amazonaws.com:3306/quarantine_monitor",
+//     username: "admin",
+//     password: "adminadmin",
+//     dbOptions: {useSSL: false}
+// });
 
 public function checkDbConnectivity() returns boolean {
     var returned = qurantineMonitorDb->update(USE_DB);
@@ -110,18 +110,20 @@ public function addDeviceInfoToTable(json info, string deviceId, string macAddre
     return false;
 }
 
-public function updateDeviceInfo(json info, boolean isPersonPresent, string name, string address, int age, string gender, string receiverId, 
+public function updateDeviceInfo(json info, string name, string address, int age, string gender, string receiverId, 
                                     string deviceId) returns boolean {
 
     jdbc:Parameter insertedTime = {
         sqlType: jdbc:TYPE_TIMESTAMP,
         value: time:currentTime()
     };   
-    var returned = qurantineMonitorDb->update(UPDATE_DEVICE_INFO, isPersonPresent, name, address, age, insertedTime, gender, receiverId, deviceId);
+    var returned = qurantineMonitorDb->update(UPDATE_DEVICE_INFO, name, address, age, insertedTime, gender, receiverId, deviceId);
 
     if (returned is jdbc:UpdateResult) {
-        log:printInfo("Updated the isPersonPresent :" + isPersonPresent.toString() + 
-                        " and name :" + name + 
+        if (returned.updatedRowCount == 0) {
+            return false;
+        }
+        log:printInfo("Updated name :" + name + 
                         " and address :" + address +
                         " and age :" + age.toString() +
                         " and receiver id :" + receiverId +
@@ -301,11 +303,11 @@ public function addAsRawData(string rawData) {
     }
 }
 
-public function deletePersonEntry(string deviceId) returns boolean {
-    var returned = qurantineMonitorDb->update(UPDATE_PERSON_PRESENCE, false, deviceId);
+public function updatePersonPresence(string deviceId, boolean isPresent) returns boolean {
+    var returned = qurantineMonitorDb->update(UPDATE_PERSON_PRESENCE, isPresent, deviceId);
 
     if (returned is jdbc:UpdateResult) {
-        log:printInfo("Remove person from the table `device_info`");
+        log:printInfo("Update person's presence of the table `device_info` as : " + isPresent.toString());
         return true;
     } else {
         log:printInfo(FAILED + <string>returned.detail()?.message);
