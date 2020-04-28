@@ -3,19 +3,19 @@ import ballerina/log;
 import ballerina/time;
 import ballerina/jsonutils;
 
-jdbc:Client qurantineMonitorDb = new ({
-    url: "jdbc:mysql://localhost:3306/quarantine_monitor",
-    username: "root",
-    password: "root",
-    dbOptions: {useSSL: false}
-});
-
 // jdbc:Client qurantineMonitorDb = new ({
-//     url: "jdbc:mysql://kavindu-rds-amazon.cmwczs08iavr.us-east-2.rds.amazonaws.com:3306/quarantine_monitor",
-//     username: "admin",
-//     password: "adminadmin",
+//     url: "jdbc:mysql://localhost:3306/quarantine_monitor",
+//     username: "root",
+//     password: "root",
 //     dbOptions: {useSSL: false}
 // });
+
+jdbc:Client qurantineMonitorDb = new ({
+    url: "jdbc:mysql://kavindu-rds-amazon.cmwczs08iavr.us-east-2.rds.amazonaws.com:3306/quarantine_monitor",
+    username: "admin",
+    password: "adminadmin",
+    dbOptions: {useSSL: false}
+});
 
 public function checkDbConnectivity() returns boolean {
     var returned = qurantineMonitorDb->update(USE_DB);

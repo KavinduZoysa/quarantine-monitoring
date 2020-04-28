@@ -34,6 +34,7 @@ const string DUMP_DEVICE_INFO_ENTRY = "INSERT INTO device_info_dump(device_id, m
     " receiver_id) SELECT device_id, mac_address, is_person_present, name, address, age, inserted_time, receiver_id FROM device_info WHERE device_id = ?";
 const string SELECT_ADDRESS = "SELECT address FROM receiver_id_mapping WHERE receiver_id = ?";
 const string SELECT_RECEIVER_ID = "SELECT receiver_id, address FROM receiver_id_mapping WHERE phi_id = ?";
-const string SELECT_PERSONS_STATUS = "SELECT device_id AS becon_id, name, gender, age, IF(missing_count>= 20, FALSE, TRUE) AS is_person_present FROM device_info where receiver_id = ?";
+const string SELECT_PERSONS_STATUS = "SELECT device_id AS becon_id, name, gender, age, IF(missing_count>= 20, FALSE, TRUE) AS is_person_present " + 
+    " FROM device_info WHERE is_person_present AND receiver_id = ?";
 const string DELETE_RECEIVER = "DELETE FROM receiver_id_mapping WHERE receiver_id = ?;";
 const string DELETE_PERSONS = "UPDATE device_info SET is_person_present = false WHERE receiver_id = ?";
