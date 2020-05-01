@@ -27,6 +27,9 @@ public function manageNotification(json receiverInfo) returns boolean {
     }
 
     json[] receiverBindedInfo = getReceiverBindedInfo(receiverId);
+    string receiverAddr = receiverBindedInfo[0].address.toString();
+    notifyPowerLevel(receiverId, receiverInfo.battery_level, receiverAddr, responsiblePersonInfo);
+    notifyMotion(receiverId, receiverInfo.physical_motion, receiverAddr, responsiblePersonInfo);
 
     map<json> mapOfDeviceInfo = createMap(receiverBindedInfo);
     map<int> missingCount = {};
@@ -36,8 +39,8 @@ public function manageNotification(json receiverInfo) returns boolean {
             json deviceInfo = mapOfDeviceInfo[missingId];
             int i = <int>deviceInfo.missing_count;
             i = i + 1;
-            if (i >= 20) {
-                notify(missingId, receiverId, responsiblePersonInfo);
+            if (i >= MAX_MISSING_COUNT) {
+                notifyMissingPerson(missingId, receiverId, responsiblePersonInfo);
             }
             missingCount[missingId] = i;
             json remove = mapOfDeviceInfo.remove(missingId);
@@ -55,7 +58,7 @@ public function getResponsiblePersonInfoFor(string receiverId) returns json[] {
     return <json[]> getResponsiblePersonInfo(receiverId);
 }
 
-public function notify(string deviceId, string receiverId, json[] responsiblePersonInfo) {
+public function notifyMissingPerson(string deviceId, string receiverId, json[] responsiblePersonInfo) {
     json[] person = <json[]>getPersonInfo(deviceId);
     json personInfo = person[0];
     boolean isPersonPresent = false;
@@ -69,14 +72,46 @@ public function notify(string deviceId, string receiverId, json[] responsiblePer
     }
     log:printInfo("Quarantine rules are violated by " + personInfo.name.toString());
 
+    string name = personInfo.name.toString();
+    string message = name + " has violated the quarantine rules, Punish " + name + " ASAP!";
     foreach var responsiblePerson in responsiblePersonInfo {
-        if (!sendNotification(responsiblePerson.phone_number.toString(), 
-                              personInfo.name.toString(), 
-                              personInfo.address.toString())) {
-            log:printError("Error in sending notification to : " + personInfo.name.toString());
+        if (!sendNotification(responsiblePerson.phone_number.toString(), message)) {
+            log:printError("Error in sending notification to : " + name);
         }
     }
     return;
+}
+
+public function notifyPowerLevel(string receiverId, json|error powerLevel, string address, json[] responsiblePersonInfo) {
+    int power = 0;
+    if (powerLevel is int) {
+        power = <int> powerLevel;
+    }
+    if (power == 0) {
+        return;
+    }
+    string message = "Power is decreasing in receiver " + receiverId + " at " + address + ". Check " + receiverId + " ASAP!";
+    foreach var responsiblePerson in responsiblePersonInfo {
+        if (!sendNotification(responsiblePerson.phone_number.toString(), message)) {
+            log:printError("Error in sending power decreasing notification to : " + receiverId);
+        }
+    }
+}
+
+public function notifyMotion(string receiverId, json|error motionInfo, string address, json[] responsiblePersonInfo) {
+    int motion = 0;
+    if (motionInfo is int) {
+        motion = <int> motionInfo;
+    }
+    if (motionInfo == 0) {
+        return;
+    }
+    string message = "Motion is detected in receiver " + receiverId + " at " + address + ". Check " + receiverId + " ASAP!";
+    foreach var responsiblePerson in responsiblePersonInfo {
+        if (!sendNotification(responsiblePerson.phone_number.toString(), message)) {
+            log:printError("Error in sending power decreasing notification to : " + receiverId);
+        }
+    }
 }
 
 public function createMap(json[] receiverBindedInfo) returns map<json> {
@@ -130,11 +165,21 @@ public function populateTables() returns boolean {
 }
 
 public function signUp(json info) returns boolean {
-    return addResponsiblePerson(info,
+    return updateResponsiblePerson(info,
                                 info.username.toString(),
-                                info.password.toString(),
-                                info.fullname.toString(),
+                                info.password.toString());
+}
+
+public function addResponsiblePerson(json info) returns boolean {
+    return addResponsiblePersonInfo(info,
+                                info.username.toString(),
+                                info.name.toString(),
                                 info.phone_number.toString());
+}
+
+public function removeResponsiblePerson(json info) returns boolean {
+    return removeResponsiblePersonInfo(info, 
+                                       info.username.toString());
 }
 
 public function getLoginInfo(json responsiblePersonInfo) returns json {

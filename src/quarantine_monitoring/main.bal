@@ -165,11 +165,12 @@ service quarantineMonitor on new http:Listener(9090) {
         http:Response res = new;
 
         var payload = req.getJsonPayload();
+        log:printInfo("Notify request : " + payload.toString());
         if (payload is json) {
-            if (!manageNotification(payload)) {
-                res.statusCode = 500;
-                res.setPayload("Error in sending notification");                
-            } 
+            json response = {
+                success: manageNotification(payload)
+            };
+            res.setJsonPayload(response); 
         } else {
             res.statusCode = 500;
             res.setPayload(<@untainted string>payload.detail()?.message);
@@ -279,6 +280,52 @@ service quarantineMonitor on new http:Listener(9090) {
         if (!populateTables()) {
             res.statusCode = 500;
             res.setPayload("Cannot create tables");
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/add-responsible-person"
+    }
+    resource function addResponsiblePerson(http:Caller caller, http:Request req) {
+
+        var payload = req.getJsonPayload();
+        http:Response res = new;
+
+        if (payload is json) {
+            if (!addResponsiblePerson(payload)) {
+                res.statusCode = 500;
+                res.setPayload("Cannot update tables");                
+            } 
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError(ERROR_INVALID_FORMAT);
+        }
+
+        respondClient(caller, res);
+    }
+
+    @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/remove-responsible-person"
+    }
+    resource function removeResponsiblePerson(http:Caller caller, http:Request req) {
+
+        var payload = req.getJsonPayload();
+        http:Response res = new;
+
+        if (payload is json) {
+            if (!removeResponsiblePerson(payload)) {
+                res.statusCode = 500;
+                res.setPayload("Cannot update tables");                
+            } 
+        } else {
+            res.statusCode = 500;
+            res.setPayload(<@untainted string>payload.detail()?.message);
+            log:printError(ERROR_INVALID_FORMAT);
         }
 
         respondClient(caller, res);

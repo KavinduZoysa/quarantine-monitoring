@@ -76,14 +76,32 @@ public function createTables() returns boolean {
     return true;
 }
 
-public function addResponsiblePerson(json info, string username, string password, string name, string phoneNumber) returns boolean {
-    var returned = qurantineMonitorDb->update(ADD_RESPONSIBLE_PERSON, username, password, name, phoneNumber);
+public function updateResponsiblePerson(json info, string username, string password) returns boolean {
+    var returned = qurantineMonitorDb->update(UPDATE_RESPONSIBLE_PERSON, password, username);
 
     if (returned is jdbc:UpdateResult) {
-        log:printInfo("Inseted the receiver id :" + username + 
-                    " and name : " + password + 
-                    " and address : " + name + 
-                    " and phone number : " + phoneNumber + " with status: " + returned.updatedRowCount.toString());
+        if (returned.updatedRowCount == 1) {
+            log:printInfo("Inseted the username :" + username + 
+                    " and password : " + password + " with status: " + returned.updatedRowCount.toString());
+            addAsRawData(info.toJsonString());
+            return true;
+        }
+    } else {
+        log:printInfo(FAILED + <string>returned.detail()?.message);
+    }
+
+    string message = "Error in inserting values to the table `responsible_person`";
+    log:printInfo(message);
+    return false;
+}
+
+public function addResponsiblePersonInfo(json info, string username, string name, string phoneNUmber) returns boolean {
+    var returned = qurantineMonitorDb->update(ADD_RESPONSIBLE_PERSON, username, name, phoneNUmber);
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Inseted the username :" + username + 
+                    " and name : " + name + 
+                    " and phone number : " + phoneNUmber + " with status: " + returned.updatedRowCount.toString());
         addAsRawData(info.toJsonString());
         return true;
     } else {
@@ -94,6 +112,23 @@ public function addResponsiblePerson(json info, string username, string password
     log:printInfo(message);
     return false;
 }
+
+public function removeResponsiblePersonInfo(json info, string username) returns boolean {
+    var returned = qurantineMonitorDb->update(DELETE_RESPONSIBLE_PERSON, username);
+
+    if (returned is jdbc:UpdateResult) {
+        log:printInfo("Remove the responsible person info for username :" + username + " with status: " + returned.updatedRowCount.toString());
+        addAsRawData(info.toJsonString());
+        return true;
+    } else {
+        log:printInfo(FAILED + <string>returned.detail()?.message);
+    }
+
+    string message = "Error in inserting values to the table `responsible_person`";
+    log:printInfo(message);
+    return false;    
+}
+
 public function addDeviceInfoToTable(json info, string deviceId, string macAddress) returns boolean {
     var returned = qurantineMonitorDb->update(ADD_DEVICE_INFO, deviceId, macAddress);
 
@@ -244,7 +279,7 @@ public function createMissingCountString(map<int> missingCount) returns string {
         i = i + 1;
     }
 
-    updateQuery = updateQuery.concat(" END WHERE device_id IN( ");
+    updateQuery = updateQuery.concat(" END WHERE is_person_present AND device_id IN( ");
     updateQuery = updateQuery.concat(ids);
     updateQuery = updateQuery.concat(");");
     log:printInfo("Missing counts update query : " + updateQuery);
